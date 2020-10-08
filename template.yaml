@@ -1,22 +1,14 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: >
   Sample SAM Template using HTTP API and Cognito Authorizer
 
 Resources:
-
-  # Dummy Lambda function 
+  # Dummy Lambda function
   HttpApiTestFunction:
     Type: AWS::Serverless::Function
     Properties:
-      InlineCode: |
-        exports.handler = function(event, context, callback) {
-          const response = {
-            test: 'Hello HttpApi',
-            claims: event.requestContext.authorizer && event.requestContext.authorizer.jwt.claims
-          };
-          callback(null, response);
-        };
+      CodeUri: ./endpoints
       Handler: index.handler
       Runtime: nodejs12.x
       Timeout: 30
@@ -38,13 +30,24 @@ Resources:
             Path: /secure
             Auth:
               Authorizer: OpenIdAuthorizer
-
+        GetSecurePreflight:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: OPTIONS
+            Path: /secure
+            Auth:
+              Authorizer: NONE
 
   HttpApi:
     Type: AWS::Serverless::HttpApi
     Properties:
-      CorsConfiguration: 
+      CorsConfiguration:
         AllowOrigins:
+          - "*"
+        AllowHeaders:
+          - "*"
+        AllowMethods:
           - "*"
       Auth:
         Authorizers:
@@ -52,59 +55,53 @@ Resources:
             IdentitySource: $request.header.Authorization
             JwtConfiguration:
               audience:
-                - !Ref UserPoolClient
-              issuer: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}
+                - !Ref MyUserPoolClient
+              issuer: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${MyUserPool}
         DefaultAuthorizer: OpenIdAuthorizer
 
-
-# User pool - simple configuration 
-  UserPool:
+  # User pool - simple configuration
+  MyUserPool:
     Type: AWS::Cognito::UserPool
-    Properties: 
-      AdminCreateUserConfig: 
+    Properties:
+      AdminCreateUserConfig:
         AllowAdminCreateUserOnly: false
-      AutoVerifiedAttributes: 
+      AutoVerifiedAttributes:
         - email
       MfaConfiguration: "OFF"
-      Schema: 
-        - AttributeDataType: String
-          Mutable: true
-          Name: name
-          Required: true
+      Schema:
         - AttributeDataType: String
           Mutable: true
           Name: email
           Required: true
-      UsernameAttributes: 
+      UsernameAttributes:
         - email
 
   # User Pool client
-  UserPoolClient:
+  MyUserPoolClient:
     Type: AWS::Cognito::UserPoolClient
-    Properties: 
-      ClientName: AspNetAppLambdaClient
-      ExplicitAuthFlows: 
+    Properties:
+      ClientName: MyUserPoolClient
+      ExplicitAuthFlows:
         - ALLOW_USER_PASSWORD_AUTH
         - ALLOW_USER_SRP_AUTH
         - ALLOW_REFRESH_TOKEN_AUTH
       GenerateSecret: false
       PreventUserExistenceErrors: ENABLED
       RefreshTokenValidity: 30
-      SupportedIdentityProviders: 
+      SupportedIdentityProviders:
         - COGNITO
-      UserPoolId: !Ref UserPool
-
+      UserPoolId: !Ref MyUserPool
 
 Outputs:
   HttpApiUrl:
     Description: URL of your API endpoint
-    Value: !Sub 'https://${HttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/'
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/"
   HttpApiId:
     Description: Api id of HttpApi
     Value: !Ref HttpApi
-  UserPoolId:
-    Description: UserPool ID
-    Value: !Ref UserPool
-  UserPoolClientId:
-    Description: UserPoolClient ID
-    Value: !Ref UserPoolClient
+  MyUserPoolId:
+    Description: MyUserPool ID
+    Value: !Ref MyUserPool
+  MyUserPoolClientId:
+    Description: MyUserPoolClient ID
+    Value: !Ref MyUserPoolClient
