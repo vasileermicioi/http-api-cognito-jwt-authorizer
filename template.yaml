@@ -1,10 +1,9 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  Sample SAM Template using HTTP API and Cognito Authorizer
+  AWS SAM with HTTP API and Cognito Authorizer
 
 Resources:
-  # Dummy Lambda function
   HttpApiTestFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -59,7 +58,6 @@ Resources:
               issuer: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${MyUserPool}
         DefaultAuthorizer: OpenIdAuthorizer
 
-  # User pool - simple configuration
   MyUserPool:
     Type: AWS::Cognito::UserPool
     Properties:
@@ -76,7 +74,6 @@ Resources:
       UsernameAttributes:
         - email
 
-  # User Pool client
   MyUserPoolClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
